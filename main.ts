@@ -125,6 +125,7 @@ class InboxModal extends Modal {
 							else {
 								// Clear task button to add more tasks
 								taskNameButton.setValue("")
+								taskNameButton.inputEl.focus()
 							}
 							if (Array.isArray(rtn)) {
 								for (const value of rtn) {
@@ -133,6 +134,8 @@ class InboxModal extends Modal {
 							}
 							});
 			})
+    // Focus on the text field
+    taskNameButton.inputEl.focus()
 	}
 	// What happens when you close the modal
 	onClose() {
