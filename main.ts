@@ -1,4 +1,8 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, ButtonComponent, TextComponent } from 'obsidian';
+import * as fs from 'fs';
+//const applescript = require('applescript');
+import * as applescript from 'applescript'
+
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -12,19 +16,30 @@ export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
-		console.log('loading plugin');
+		// Tell the console what you're doing
+		console.log('Loading OmniFocus Plugin');
 
+		// Load settings
 		await this.loadSettings();
 
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
+		// Add ribbon icon that opens the modal to quick add tasks
+		this.addRibbonIcon('check-in-circle', 'OmniFocus', () => {
+			let leaf = this.app.workspace.activeLeaf;
+			if (leaf) {
+					new InboxModal(this.app).open();
+				return true;
+			}
+			return false;
 		});
 
-		this.addStatusBarItem().setText('Status Bar Text');
+		// Add a status bar item
+		// this.addStatusBarItem().setText('Hello Mellow');
 
+		// Add a comand to open the modal
 		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
+			// Can use this to extract the database of tags and projects from OF
+			id: 'add-inbox-task',
+			name: 'Add task to Inbox',
 			// callback: () => {
 			// 	console.log('Simple Callback');
 			// },
@@ -32,7 +47,7 @@ export default class MyPlugin extends Plugin {
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
 					if (!checking) {
-						new SampleModal(this.app).open();
+						new InboxModal(this.app).open();
 					}
 					return true;
 				}
@@ -40,42 +55,86 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
+		// Add the settings tab
 		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
-
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
+	// What happens when you unload
 	onunload() {
-		console.log('unloading plugin');
+		console.log('Unloading OmniFocus plugin');
 	}
 
+	// Load settings function
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
+	// Save settings function
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
 }
 
-class SampleModal extends Modal {
+// Modal to add tasks to inbox
+class InboxModal extends Modal {
+	// Construct?
 	constructor(app: App) {
 		super(app);
 	}
 
+	// What happens when you open it
 	onOpen() {
 		let {contentEl} = this;
-		contentEl.setText('Woah!');
+		// Add text box to hold the task name
+        let taskNameButton = new TextComponent(contentEl)
+				.setPlaceholder("Task Name")
+		// Button to add the tasks to OF
+		let addTaskButton = new ButtonComponent(contentEl)
+			.setButtonText('Submit')
+			.setIcon("right-chevron-glyph")
+			.setTooltip("Submit")
+			// On Click callback
+			.onClick(() => {
+				// Add quotes so it can be used in AppleScript
+				var taskName = "\"" + taskNameButton.getValue() + "\""
+				var taskNote = "\"Added by Obsidian on \""
+				const script = `set theDate to current date
+								set theTask to ${taskName}
+								set theNote to ${taskNote} & theDate
+				
+								tell application "OmniFocus"
+									tell front document
+										-- set theTag to first flattened tag where its name = "Office"
+										-- set theProject to first flattened project where its name = "Lin2019"
+										-- tell theProject to make new task with properties {name:theTask, note:theNote, primary tag:theTag}
+										-- make new inbox task with properties {name:theTask, note:theNote, primary tag:theTag}
+										make new inbox task with properties {name:theTask, note:theNote}
+									end tell
+								end tell`
+				// for debugging
+				console.log("This is the script for adding the task")
+				console.log(script)
+				// Execute apple script
+				applescript.execString(script, (err: any, rtn: any) => {
+							if (err) {
+								// Something went wrong!
+								console.log(err)
+								// What Reason?
+								new Notice("Error: Unable to create task for some reason")
+							}
+							else {
+								// Clear task button to add more tasks
+								taskNameButton.setValue("")
+							}
+							if (Array.isArray(rtn)) {
+								for (const value of rtn) {
+									console.log(value);
+								}
+							}
+							});
+			})
 	}
-
+	// What happens when you close the modal
 	onClose() {
 		let {contentEl} = this;
 		contentEl.empty();
@@ -95,7 +154,7 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl('h2', {text: 'OmniFocus Settings'});
 
 		new Setting(containerEl)
 			.setName('Setting #1')
@@ -109,4 +168,6 @@ class SampleSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 	}
+}
+function runAppleScript(script: string){
 }
