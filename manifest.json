@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-sample-plugin",
-	"name": "Omnifocus",
+	"id": "obsidian-omnifocus",
+	"name": "OmniFocus",
 	"version": "0.0.1",
 	"minAppVersion": "0.9.12",
-	"description": "This is a sample plugin for Obsidian. This plugin demonstrates some of the capabilities of the Obsidian API.",
+	"description": "This plugin allows you to interface Obsidian with OmniFocus",
 	"author": "Omar Ashour",
-	"authorUrl": "https://obsidian.md/about",
-	"isDesktopOnly": false
+	"authorUrl": "https://omarashour.com",
+	"isDesktopOnly": true
 }
